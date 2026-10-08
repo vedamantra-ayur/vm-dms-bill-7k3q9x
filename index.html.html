@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Vedamantra · Invoice maker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600;700&family=Nunito+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<!-- Word-file library (loads from the internet, needed only for the download button) -->
+<script src="https://cdn.jsdelivr.net/npm/docx@9.6.1/dist/index.iife.js"></script>
+<style>
+  :root{
+    --cream:#F6EFD8; --paper:#FFFCF2; --forest:#2C4A32; --forest-2:#3F6647;
+    --gold:#A8893C; --line:#E0D5B2; --ink:#25301F; --muted:#6A6F59;
+    --warn:#8A4F0E; --warn-bg:#FBEBCB; --ok:#2E7D4F; --danger:#A33A2A;
+    --serif:'Lora',Georgia,'Times New Roman',serif;
+    --sans:'Nunito Sans','Segoe UI',system-ui,-apple-system,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--cream);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.5}
+  header.top{padding:22px 24px 10px;max-width:1340px;margin:0 auto;display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+  header.top h1{margin:0;font-family:var(--serif);font-weight:700;font-size:28px;color:var(--forest);letter-spacing:.01em}
+  header.top p{margin:0;color:var(--muted)}
+  main{max-width:1340px;margin:0 auto;padding:8px 24px 60px;display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:36px;align-items:start}
+  @media (max-width:980px){ main{grid-template-columns:1fr} aside.bill{position:static!important} }
+
+  section.step{padding:20px 0 26px;border-top:2px solid var(--gold)}
+  section.step:first-child{border-top:0}
+  .step h2{margin:0 0 4px;font-family:var(--serif);font-size:21px;color:var(--forest);display:flex;gap:12px;align-items:baseline}
+  .step h2 .n{font-size:15px;color:var(--gold);font-weight:700;min-width:16px}
+  .step .hint{margin:0 0 14px;color:var(--muted);font-size:14.5px}
+  h3.sub{margin:22px 0 10px;font-family:var(--serif);font-size:16px;color:var(--forest)}
+
+  label{display:block;font-size:13.5px;font-weight:700;color:var(--forest);margin-bottom:4px}
+  input,select,textarea{width:100%;font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:9px 10px;min-height:42px}
+  textarea{resize:vertical;min-height:84px}
+  input:focus,select:focus,textarea:focus,button:focus-visible,summary:focus-visible{outline:3px solid rgba(63,102,71,.35);outline-offset:1px;border-color:var(--forest-2)}
+  .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 16px}
+  .grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .grid .full{grid-column:1/-1}
+  @media (max-width:640px){ .grid,.grid.three{grid-template-columns:1fr} }
+  .small{font-size:13px;color:var(--muted);margin-top:4px}
+  .check{display:flex;gap:10px;align-items:center;font-weight:600;color:var(--forest);font-size:15px}
+  .check input{width:20px;height:20px;min-height:0;accent-color:var(--forest)}
+
+  details{margin-top:18px;border:1px solid var(--line);border-radius:8px;background:rgba(255,252,242,.55)}
+  details>summary{cursor:pointer;padding:12px 14px;font-weight:700;color:var(--forest);list-style:none;display:flex;justify-content:space-between;align-items:center}
+  details>summary::-webkit-details-marker{display:none}
+  details>summary::after{content:'+';font-size:20px;color:var(--gold);line-height:1}
+  details[open]>summary::after{content:'−'}
+  details .inner{padding:4px 14px 16px}
+
+  button{font:inherit;cursor:pointer;border-radius:6px;border:1px solid var(--forest);padding:10px 18px;min-height:42px;font-weight:700}
+  .primary{background:var(--forest);color:#fff}
+  .primary:hover{background:var(--forest-2)}
+  .primary:disabled{opacity:.55;cursor:not-allowed}
+  .ghost{background:transparent;color:var(--forest)}
+  .ghost:hover{background:rgba(44,74,50,.08)}
+  .row-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px}
+  #readMsg{font-size:14.5px;color:var(--ok);font-weight:600}
+  #readMsg.bad{color:var(--danger)}
+
+  .tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--paper)}
+  table.items{border-collapse:collapse;width:100%;min-width:800px}
+  table.items th{font-size:13px;text-align:left;color:var(--forest);background:#EEF0DD;padding:8px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+  table.items td{padding:6px 6px;border-bottom:1px solid #EFE7CB;vertical-align:top}
+  table.items td.sn{width:34px;text-align:center;color:var(--muted);padding-top:15px}
+  table.items td.net{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;padding-top:15px;font-weight:600;min-width:92px}
+  table.items input,table.items select{min-height:38px;padding:6px 8px}
+  table.items td.c-desc{min-width:250px}
+  table.items td.c-desc input{margin-top:6px}
+  table.items td.c-hsn{width:92px} table.items td.c-qty{width:66px} table.items td.c-wt{width:92px} table.items td.c-mrp{width:98px}
+  .x{border-color:transparent;background:transparent;color:var(--danger);font-size:20px;padding:4px 10px;min-height:38px}
+  .x:hover{background:rgba(163,58,42,.1)}
+  tr.note td{padding:0 8px 8px 42px;border-bottom:1px solid #EFE7CB}
+  tr.note .w{background:var(--warn-bg);color:var(--warn);font-size:13.5px;padding:5px 10px;border-radius:5px;display:inline-block}
+  .empty{padding:22px;color:var(--muted);text-align:center}
+  #subCheck{margin-top:10px;font-size:14.5px;font-weight:600}
+  #subCheck.ok{color:var(--ok)} #subCheck.bad{color:var(--warn)}
+
+  aside.bill{position:sticky;top:16px;background:var(--paper);border:1px solid var(--line);border-left:5px solid var(--gold);border-radius:4px;padding:22px 22px 20px}
+  aside.bill h2{margin:0;font-family:var(--serif);font-size:20px;color:var(--forest)}
+  .orderno{font-family:var(--serif);font-size:15px;color:var(--gold);font-weight:600;margin:2px 0 14px;word-break:break-all}
+  dl.sum{margin:0}
+  dl.sum div{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px dashed var(--line)}
+  dl.sum dt{color:var(--muted)} dl.sum dd{margin:0;font-variant-numeric:tabular-nums;text-align:right}
+  dl.sum .assess dt,dl.sum .assess dd{color:var(--ink);font-weight:700}
+  .totalbox{margin-top:14px;padding:12px 0 2px}
+  .totalbox .lbl{font-weight:700;color:var(--forest)}
+  .totalbox .amt{font-family:var(--serif);font-size:34px;font-weight:700;color:var(--forest);line-height:1.15;font-variant-numeric:tabular-nums}
+  .totalbox .words{font-size:13px;color:var(--muted);margin-top:4px}
+  .bill .primary{width:100%;margin-top:16px;font-size:17px;padding:13px}
+  #dlMsg{margin-top:10px;font-size:14.5px;min-height:22px}
+  #dlMsg.bad{color:var(--danger);font-weight:600} #dlMsg.ok{color:var(--ok);font-weight:600}
+  .bill .ghost{width:100%;margin-top:10px}
+  [hidden]{display:none!important}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>Vedamantra</h1>
+  <p>Invoice maker: paste the order, check the details, download the Word bill.</p>
+</header>
+
+<main>
+  <div class="left">
+
+    <section class="step">
+      <h2><span class="n">1</span>Paste the order message</h2>
+      <p class="hint">Copy the whole WhatsApp order and paste it here. Items, quantities, name, phone and address are picked up automatically.</p>
+      <label for="orderText">Order message</label>
+      <textarea id="orderText" rows="8" placeholder="Hello Vedamantra! I would like to place an order:&#10;&#10;1. Kesha Raksha Kera Tailam (200ml) × 1 — ₹495&#10;...&#10;Name: &#10;Phone: &#10;Delivery Address: "></textarea>
+      <div class="row-actions">
+        <button class="primary" id="readBtn" type="button">Read order</button>
+        <span id="readMsg" role="status"></span>
+      </div>
+    </section>
+
+    <section class="step">
+      <h2><span class="n">2</span>Invoice details</h2>
+      <p class="hint">Fill in what the message does not carry. The invoice number is made for you.</p>
+
+      <div class="grid">
+        <div><label for="fDate">Invoice date</label><input type="date" id="fDate"></div>
+        <div><label for="fStyle">Invoice number style</label>
+          <select id="fStyle">
+            <option value="vm">VM-07/10/2026-001 (date based)</option>
+            <option value="fy">VED/26-27/016 (financial year, like your old bill)</option>
+          </select>
+        </div>
+        <div class="full"><label for="fOrderNo">Invoice number</label><input type="text" id="fOrderNo" autocomplete="off"><div class="small" id="orderNoHint">Next number for this date.</div></div>
+      </div>
+
+      <h3 class="sub">Billed to</h3>
+      <div class="grid">
+        <div><label for="fName">Customer name</label><input type="text" id="fName" autocomplete="off"></div>
+        <div><label for="fPhone">Phone number</label><input type="tel" id="fPhone" autocomplete="off"></div>
+        <div class="full"><label for="fAddress">Address</label><textarea id="fAddress" rows="2"></textarea></div>
+        <div><label for="fState">State</label><select id="fState"></select></div>
+        <div><label for="fStateCode">State code</label><input type="text" id="fStateCode" autocomplete="off" inputmode="numeric"><div class="small">Filled in when you pick the state.</div></div>
+        <div class="full"><label for="fGstin">Customer GSTIN (if any)</label><input type="text" id="fGstin" autocomplete="off"></div>
+      </div>
+
+      <details>
+        <summary>Shipped to a different address?</summary>
+        <div class="inner">
+          <p class="small" style="margin-top:0">Leave these empty to ship to the billed-to address. Anything you fill in replaces that part only.</p>
+          <div class="grid">
+            <div><label for="sName">Name</label><input type="text" id="sName" autocomplete="off"></div>
+            <div><label for="sPhone">Phone</label><input type="tel" id="sPhone" autocomplete="off"></div>
+            <div class="full"><label for="sAddress">Address</label><textarea id="sAddress" rows="2"></textarea></div>
+            <div><label for="sState">State</label><select id="sState"></select></div>
+            <div><label for="sGstin">GSTIN</label><input type="text" id="sGstin" autocomplete="off"></div>
+          </div>
+        </div>
+      </details>
+
+      <h3 class="sub">Bill details</h3>
+      <div class="grid three">
+        <div><label for="fRange">Range</label><input type="text" id="fRange" autocomplete="off" placeholder="10k-15k"></div>
+        <div><label for="fDivision">Division</label><input type="text" id="fDivision" autocomplete="off" placeholder="SP-1"></div>
+        <div><label for="fComm">Commission rate</label><input type="text" id="fComm" autocomplete="off" placeholder="1 ST MONTH"></div>
+      </div>
+      <div class="grid" style="margin-top:14px">
+        <div><label for="fDisc">Discount (%)</label><input type="number" id="fDisc" min="0" max="100" step="0.01" value="0" inputmode="decimal"></div>
+        <div><label for="fGst">GST</label>
+          <select id="fGst">
+            <option value="">Choose GST option…</option>
+            <option value="cgst_sgst">CGST 2.5% + SGST 2.5%</option>
+            <option value="igst">IGST 5%</option>
+            <option value="none">No GST</option>
+          </select>
+          <div class="small" id="gstHint"></div>
+        </div>
+        <div><label for="fTrans">Transport charges (₹)</label><input type="number" id="fTrans" min="0" step="0.01" value="0" inputmode="decimal"></div>
+        <div><label for="fVia">Transport via</label><input type="text" id="fVia" autocomplete="off" value="Courier"></div>
+      </div>
+
+      <details>
+        <summary>Transport and order details</summary>
+        <div class="inner">
+          <div class="grid">
+            <div><label for="dPo">PO No</label><input type="text" id="dPo" autocomplete="off"></div>
+            <div><label for="dPoDate">PO date</label><input type="text" id="dPoDate" autocomplete="off"></div>
+            <div><label for="dMode">Mode of transport</label><input type="text" id="dMode" autocomplete="off"></div>
+            <div><label for="dDocs">Documents through</label><input type="text" id="dDocs" autocomplete="off"></div>
+            <div><label for="dTransporter">Transporter name</label><input type="text" id="dTransporter" autocomplete="off"></div>
+            <div><label for="dTransGstin">Transporter GSTIN</label><input type="text" id="dTransGstin" autocomplete="off"></div>
+            <div><label for="dLr">LR No</label><input type="text" id="dLr" autocomplete="off"></div>
+            <div><label for="dIns">Transit insurance No</label><input type="text" id="dIns" autocomplete="off"></div>
+            <div><label for="dTerms">Payment terms</label><input type="text" id="dTerms" autocomplete="off"></div>
+            <div><label for="dReverse">Tax payable on reverse charge</label>
+              <select id="dReverse"><option>No</option><option>Yes</option></select>
+            </div>
+            <div class="full"><label for="dProp">Property ID No</label><input type="text" id="dProp" autocomplete="off"></div>
+          </div>
+        </div>
+      </details>
+
+      <div style="margin-top:18px">
+        <label class="check" for="fStamp"><input type="checkbox" id="fStamp" checked>Add the company stamp and signature</label>
+      </div>
+    </section>
+
+    <section class="step">
+      <h2><span class="n">3</span>Check the items</h2>
+      <p class="hint">Change a product, quantity or rate here if needed. You can also reword the description that prints on the bill. Amber notes mean something needs a quick look. HSN codes are optional for now.</p>
+      <div class="tablewrap">
+        <table class="items">
+          <thead><tr><th>#</th><th>Product and description on bill</th><th>HSN code</th><th>Qty</th><th>UOM</th><th>Rate (₹)</th><th style="text-align:right">Net amount (₹)</th><th><span style="position:absolute;left:-9999px">Remove</span></th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+        <div class="empty" id="emptyMsg">No items yet. Paste an order above, or add an item.</div>
+      </div>
+      <div class="row-actions"><button class="ghost" id="addBtn" type="button">Add item</button></div>
+      <div id="subCheck" role="status"></div>
+    </section>
+  </div>
+
+  <aside class="bill" aria-label="Bill summary">
+    <h2>Bill summary</h2>
+    <div class="orderno" id="bOrderNo">–</div>
+    <dl class="sum">
+      <div><dt>Gross value</dt><dd id="bGross">0.00</dd></div>
+      <div><dt id="bDiscLbl">Discount</dt><dd id="bDisc">0.00</dd></div>
+      <div class="assess"><dt>Assessable value</dt><dd id="bAssess">0.00</dd></div>
+      <div id="rCgst" hidden><dt>CGST (2.5%)</dt><dd id="bCgst">0.00</dd></div>
+      <div id="rSgst" hidden><dt>SGST (2.5%)</dt><dd id="bSgst">0.00</dd></div>
+      <div id="rIgst" hidden><dt>IGST (5%)</dt><dd id="bIgst">0.00</dd></div>
+      <div><dt>Transport charges</dt><dd id="bTrans">0.00</dd></div>
+    </dl>
+    <div class="totalbox">
+      <div class="lbl">Total invoice value</div>
+      <div class="amt" id="bTotal">₹0.00</div>
+      <div class="words" id="bWords">NIL</div>
+    </div>
+    <button class="primary" id="dlBtn" type="button">Download Word invoice</button>
+    <div id="dlMsg" role="status" aria-live="polite"></div>
+    <button class="ghost" id="newBtn" type="button">Start new order</button>
+  </aside>
+</main>
+
+<script>
+// ==CORE-START==
+// ---------- Company details printed on every invoice ----------
+const COMPANY = {
+  name: 'DR.SAHITHI AYUR REMIDIES PVT LTD',
+  address: 'Gottipati Brahmaiah Street, Ayyappa Nagar, Vijayawada Krishna Dist, Andhra Pradesh - 520007',
+  pan: 'AALCD2439C',
+  gstin: '37AALCD2439C1ZS',
+  stateCode: '37'
+};
+const DECLARATION = 'Certified that the particulars given above are true and correct and the amount indicated represents the price actually charged and that there is no additional consideration flowing directly or indirectly over and above what has been declared herein from the buyer.';
+// Company stamp and signature (taken from your old invoice), stored inside this page
+const STAMP_B64 = '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';
+const STAMP_DATA = 'data:image/jpeg;base64,' + STAMP_B64;
+
+// ---------- Product catalogue (from the Vedamantra price list) ----------
+// inv  = wording printed on the bill (taken from your old invoice where it had one)
+// hsn  = leave '' for now; fill in here once you have the codes, e.g. hsn:'3004'
+const CATALOG = [
+  {cat:'Hair care', name:'Kesha Raksha Kera Tailam', wt:'200ml', mrp:495, hsn:''},
+  {cat:'Hair care', name:'Kesha Raksha Keshyamruta Tailam', wt:'200ml', mrp:1800, hsn:''},
+  {cat:'Hair care', name:'Kesha Raksha Herbal Shampoo', wt:'200ml', mrp:475, hsn:''},
+  {cat:'Hair care', name:'Kesha Raksha Organic Henna', wt:'100gms', mrp:395, hsn:''},
+  {cat:'Hair care', name:'Kesha Raksha Vanrya Henna', wt:'100gms', mrp:400, hsn:''},
+  {cat:'Wellness', name:'Medha', wt:'250gms', mrp:750, hsn:''},
+  {cat:'Wellness', name:'Medha', wt:'500gms', mrp:1500, hsn:''},
+  {cat:'Wellness', name:'Swasthya', wt:'500gms', mrp:1800, hsn:''},
+  {cat:'Wellness', name:'Swasthya', wt:'1kg', mrp:3200, hsn:''},
+  {cat:'Skin care', name:'Kumkumadi Day Cream', wt:'30gms', mrp:750, hsn:''},
+  {cat:'Skin care', name:'Kumkumadi Night Cream', wt:'30gms', mrp:1350, hsn:''},
+  {cat:'Skin care', name:'Face Pack', wt:'25gms', mrp:285, hsn:''},
+  {cat:'Skin care', name:'Face Scrub', wt:'50gms', mrp:405, hsn:''},
+  {cat:'Skin care', name:'Aloe Manjista Gel', wt:'50gms', mrp:375, hsn:''},
+  {cat:'Skin care', name:'Kanaka Tailam', wt:'30ml', mrp:885, hsn:''},
+  {cat:'Skin care', name:'Kumkumadi Tailam', wt:'30ml', mrp:1295, hsn:''},
+  {cat:'Skin care', name:'Rose Water', wt:'200ml', mrp:650, hsn:''},
+  {cat:'Body care', name:'Vedic Body Butter Moisturising Cream', inv:'BODY BUTTER', wt:'200ml', mrp:650, hsn:''},
+  {cat:'Body care', name:'Vedic Ubtan Bathing Powder', inv:'UBTAN POWDER', wt:'100gms', mrp:250, hsn:''},
+  {cat:'Body care', name:'Shea Butter Lip Butter', inv:'SHEA BUTTER', wt:'15gms', mrp:250, hsn:''},
+  {cat:'Body care', name:'Foot Butter', wt:'50gms', mrp:495, hsn:''},
+  {cat:'Pain relief', name:'Insta Pain Off Oil', wt:'200ml', mrp:595, hsn:''},
+  {cat:'Pain relief', name:'Insta Pain Off Balm', wt:'50gms', mrp:315, hsn:''},
+  {cat:'Pain relief', name:'Insta Pain Off Balm', wt:'10gms', mrp:70, hsn:''},
+  {cat:'Soaps & combo kits', name:'Sunnipindi Soap', wt:'100gms', mrp:125, hsn:''},
+  {cat:'Soaps & combo kits', name:'Saffron Papaya Soap', inv:'SAFFRON PAPAYA SOAPS', wt:'100gms', mrp:125, hsn:''},
+  {cat:'Soaps & combo kits', name:'Luxury Vedic Ubtan Soap', wt:'100gms', mrp:200, hsn:''},
+  {cat:'Soaps & combo kits', name:'Luxury Vedic Madhuksheera Soap', wt:'100gms', mrp:205, hsn:''},
+  {cat:'Soaps & combo kits', name:'Luxury Vedic Kumkumadi Soap', inv:'KUMKUMADI SOAPS', wt:'100gms', mrp:200, hsn:''},
+  {cat:'Soaps & combo kits', name:'Saffron Charcoal Soap', inv:'SAFFRON CHARCOAL SOAPS', wt:'100gms', mrp:195, hsn:''},
+  {cat:'Soaps & combo kits', name:'VM Soap Combo Kit — 3 Soaps + 1 shampoo', inv:'VM SOAP COMBO + 1 SHAMPOO', wt:'300gms', mrp:480, hsn:''},
+  {cat:'Soaps & combo kits', name:'VM Soap Combo Kit — 3 Soaps + 2 soaps', inv:'VM SOAPS COMBO KIT', wt:'500gms', mrp:300, hsn:''}
+];
+
+const STATE_CODES = {'Jammu and Kashmir':'01','Himachal Pradesh':'02','Punjab':'03','Chandigarh':'04','Uttarakhand':'05','Haryana':'06','Delhi':'07','Rajasthan':'08','Uttar Pradesh':'09','Bihar':'10','Sikkim':'11','Arunachal Pradesh':'12','Nagaland':'13','Manipur':'14','Mizoram':'15','Tripura':'16','Meghalaya':'17','Assam':'18','West Bengal':'19','Jharkhand':'20','Odisha':'21','Chhattisgarh':'22','Madhya Pradesh':'23','Gujarat':'24','Dadra and Nagar Haveli and Daman and Diu':'26','Maharashtra':'27','Karnataka':'29','Goa':'30','Lakshadweep':'31','Kerala':'32','Tamil Nadu':'33','Puducherry':'34','Andaman and Nicobar Islands':'35','Telangana':'36','Andhra Pradesh':'37','Ladakh':'38'};
+const STATES = Object.keys(STATE_CODES).sort((a,b)=>a.localeCompare(b));
+
+// ---------- Text helpers ----------
+const norm = s => String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,'');
+function lev(a,b){
+  const m=a.length,n=b.length; if(!m) return n; if(!n) return m;
+  let prev=Array.from({length:n+1},(_,j)=>j);
+  for(let i=1;i<=m;i++){
+    const cur=[i];
+    for(let j=1;j<=n;j++){
+      cur[j]=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1));
+    }
+    prev=cur;
+  }
+  return prev[n];
+}
+function sim(a,b){
+  if(!a||!b) return 0;
+  let s=1-lev(a,b)/Math.max(a.length,b.length);
+  if((a.includes(b)||b.includes(a)) && Math.min(a.length,b.length)>=6) s=Math.max(s,0.9);
+  return s;
+}
+function canonWt(s){
+  const m=String(s||'').toLowerCase().match(/(\d+(?:\.\d+)?)\s*(kgs?|kilograms?|gms?|grams?|g|ml|ltrs?|litres?|liters?|l)\b/);
+  if(!m) return '';
+  let v=parseFloat(m[1]); const u=m[2];
+  if(/^k/.test(u)) return Math.round(v*1000)+'g';
+  if(/^(g|gm|gms|gram|grams)$/.test(u)) return Math.round(v)+'g';
+  if(u==='ml') return Math.round(v)+'ml';
+  return Math.round(v*1000)+'ml';
+}
+// "100gms" -> "100 GM", "1kg" -> "1 KG", "200ml" -> "200 ML" (as printed on the old bill)
+function uomFmt(wt){
+  const m=String(wt||'').trim().match(/^(\d+(?:\.\d+)?)\s*(kgs?|gms?|grams?|g|ml|ltrs?|l)\b/i);
+  if(!m) return String(wt||'').trim().toUpperCase();
+  const u=m[2].toLowerCase();
+  const unit=/^k/.test(u)?'KG':/^(g|gm|gms|gram|grams)$/.test(u)?'GM':u==='ml'?'ML':'LTR';
+  return m[1]+' '+unit;
+}
+const invName = p => p.inv || p.name.toUpperCase();
+
+function matchProduct(nameText, sizeText){
+  const key=norm(nameText);
+  let bestName=null, bs=0;
+  CATALOG.forEach(p=>{ const s=sim(key,norm(p.name)); if(s>bs){bs=s;bestName=p.name;} });
+  if(!bestName || bs<0.62) return {idx:-1,flag:'Could not match this to a product. Pick the right one from the list.'};
+  const idxs=CATALOG.map((p,i)=>p.name===bestName?i:-1).filter(i=>i>=0);
+  let flag='';
+  if(bs<0.8) flag='Matched to "'+bestName+'". Please confirm it is the right product.';
+  if(idxs.length===1) return {idx:idxs[0],flag};
+  const want=canonWt(sizeText);
+  const hit=idxs.find(i=>canonWt(CATALOG[i].wt)===want);
+  if(want && hit!==undefined) return {idx:hit,flag};
+  return {idx:idxs[0],flag:'This product comes in more than one size. Check the size.'};
+}
+
+// ---------- Order message reader ----------
+function parseOrder(text){
+  const lines=String(text||'').split(/\r?\n/);
+  const out={items:[],skipped:[],name:'',phone:'',address:'',subtotal:null,state:''};
+  let inAddress=false;
+  const keyRe=/^\s*(?:customer\s*)?(?:name|phone|mobile|contact|whatsapp|(?:delivery\s*)?address|sub\s*total|total|shipping|payment|note)\b.*?[:\-]/i;
+  for(const raw of lines){
+    const line=raw.trim();
+    if(!line){ inAddress=false; continue; }
+    let m;
+    if((m=line.match(/^(?:customer\s*)?name\s*[:\-]\s*(.*)$/i))){ out.name=m[1].trim(); inAddress=false; continue; }
+    if((m=line.match(/^(?:phone|mobile|contact|whatsapp)(?:\s*(?:no\.?|number))?\s*[:\-]\s*(.*)$/i))){ out.phone=m[1].replace(/[^\d+]/g,''); inAddress=false; continue; }
+    if((m=line.match(/^(?:delivery\s*)?address\s*[:\-]\s*(.*)$/i))){ out.address=m[1].trim(); inAddress=true; continue; }
+    if((m=line.match(/^sub\s*total\s*[:\-]?\s*(?:₹|rs\.?|inr)?\s*([\d,]+(?:\.\d+)?)/i))){ out.subtotal=parseFloat(m[1].replace(/,/g,'')); inAddress=false; continue; }
+    if(keyRe.test(line)){ inAddress=false; continue; }
+
+    const numbered=/^\d+\s*[.)]\s+/.test(line);
+    let s=line.replace(/^\d+\s*[.)]\s+/,'').replace(/^[-•*]\s+/,'');
+    // amount at the end: "= ₹1,485", "— ₹1,485", "- 1485", ": ₹1,485"
+    let msgAmount=null;
+    const am=s.match(/\s*(?:[=—–:]|-)+\s*(?:₹|rs\.?|inr)?\s*([\d,]+(?:\.\d+)?)\s*(?:\/-)?\s*$/i);
+    if(am){ msgAmount=parseFloat(am[1].replace(/,/g,'')); s=s.slice(0,am.index); }
+    // quantity at the end: "x3", "× 3", "X 3", "*3"  (a letter x needs a space or ")" before it)
+    let qty=null;
+    const qm=s.match(/([×*]|[xX])\s*(\d+)\s*$/);
+    if(qm){
+      const ch=s[qm.index-1];
+      if(!/[xX]/.test(qm[1]) || ch===undefined || /[\s)\]]/.test(ch)){ qty=parseInt(qm[2],10); s=s.slice(0,qm.index); }
+    }
+    if(qty===null){ const lm=s.match(/^(\d+)\s*[×xX]\s+/); if(lm){ qty=parseInt(lm[1],10); s=s.slice(lm[0].length); } }
+    if(qty!==null && s.trim()){
+      // brackets that hold a size, like (200ml), are the size; other brackets stay part of the name
+      let size='';
+      s=s.replace(/\(([^)]*)\)/g,(all,inner)=>{
+        const rest=inner.replace(/\d+(?:\.\d+)?\s*(?:kgs?|gms?|grams?|g|ml|ltrs?|l)\b/ig,'');
+        if(!size && canonWt(inner) && !/[a-z]{3,}/i.test(rest)){ size=inner; return ' '; }
+        return ' '+inner+' ';
+      });
+      if(!size){ const tm=s.match(/\s(\d+(?:\.\d+)?\s*(?:kg|gms?|g|ml|l))\s*$/i); if(tm){ size=tm[1]; s=s.slice(0,tm.index); } }
+      s=s.replace(/\s+/g,' ').trim();
+      const mt=matchProduct(s,size);
+      out.items.push({rawName:s,size,qty,msgAmount,idx:mt.idx,flag:mt.flag});
+      inAddress=false; continue;
+    }
+    if(numbered){ out.skipped.push(line); inAddress=false; continue; }
+    if(inAddress){ out.address+=(out.address?', ':'')+line; }
+  }
+  const low=out.address.toLowerCase();
+  const st=STATES.find(x=>low.includes(x.toLowerCase()));
+  if(st) out.state=st;
+  return out;
+}
+
+// ---------- Money (everything in paise to avoid rounding drift) ----------
+function fmtINR(p){
+  const neg=p<0; p=Math.abs(p);
+  const r=Math.floor(p/100), f=String(p%100).padStart(2,'0');
+  let s=String(r);
+  if(s.length>3){ const last3=s.slice(-3); const rest=s.slice(0,-3).replace(/\B(?=(\d{2})+(?!\d))/g,','); s=rest+','+last3; }
+  return (neg?'-':'')+s+'.'+f;
+}
+// plain number for rate / net columns, like the old bill: 1485 or 70.50
+const fmtPlain = p => p%100===0 ? String(p/100) : (p/100).toFixed(2);
+
+const ONES=['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
+const TENS=['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
+const below100=n=>n<20?ONES[n]:TENS[Math.floor(n/10)]+(n%10?' '+ONES[n%10]:'');
+const below1000=n=>{const h=Math.floor(n/100),r=n%100;return (h?ONES[h]+' Hundred'+(r?' and ':''):'')+(r?below100(r):'');};
+function intWords(n){
+  if(n===0) return 'Zero';
+  const parts=[];
+  const cr=Math.floor(n/1e7); n%=1e7;
+  const lk=Math.floor(n/1e5); n%=1e5;
+  const th=Math.floor(n/1e3); n%=1e3;
+  if(cr) parts.push(intWords(cr)+' Crore');
+  if(lk) parts.push(below100(lk)+' Lakh');
+  if(th) parts.push(below100(th)+' Thousand');
+  if(n){ parts.push(n<100 && parts.length ? 'and '+below100(n) : below1000(n)); }
+  return parts.join(' ');
+}
+// "FOURTEEN THOUSAND NINE HUNDRED AND FORTY THREE RUPEES ONLY", the way your old bill writes it
+function amountWords(paise){
+  if(!paise) return 'NIL';
+  const r=Math.floor(paise/100), p=paise%100;
+  let s=r?intWords(r)+' Rupees':'';
+  if(p) s+=(r?' and ':'')+below100(p)+' Paise';
+  return (s+' Only').toUpperCase();
+}
+
+function calc(rows, discPct, gst, transportRupees){
+  const lines=rows.map(r=>({...r, mrpP:Math.round((+r.mrp||0)*100), net:Math.round((+r.mrp||0)*100)*(parseInt(r.qty,10)||0)}));
+  const gross=lines.reduce((a,l)=>a+l.net,0);
+  const pct=Math.min(100,Math.max(0,+discPct||0));
+  const discount=Math.round(gross*pct/100+1e-9);
+  const assess=gross-discount;
+  let cgst=0,sgst=0,igst=0;
+  if(gst==='cgst_sgst'){ cgst=Math.round(assess*25/1000); sgst=cgst; }
+  else if(gst==='igst'){ igst=Math.round(assess*5/100); }
+  const trans=Math.round(Math.max(0,+transportRupees||0)*100);
+  const total=assess+cgst+sgst+igst+trans;
+  return {lines,gross,pct,discount,assess,cgst,sgst,igst,trans,total};
+}
+
+// ---------- Word file (same layout as the old Dr. Sahithi Ayur Remidies tax invoice) ----------
+function buildDocx(d){
+  const {Document,Paragraph,TextRun,Table,TableRow,TableCell,WidthType,AlignmentType,ShadingType,VerticalAlign,TableLayoutType,ImageRun,BorderStyle,LineRuleType}=docx;
+  const FONT='Arial';
+  // long lists get a denser layout so everything stays on one A4 page
+  const n=d.lines.length;
+  const dense=n>26;
+  const tier = n<=14 ? {sz:17,pad:22} : n<=20 ? {sz:15,pad:14} : n<=26 ? {sz:14,pad:9} : n<=34 ? {sz:14,pad:5} : {sz:12,pad:2};
+  const PADB=dense?12:30, TPAD=dense?18:40;
+  const CENTER=AlignmentType.CENTER, RIGHT=AlignmentType.RIGHT, LEFT=AlignmentType.LEFT;
+  // 9 grid columns: Sl, Index, HSN, Desc A, Desc B, Qty, UOM, Rate, Net
+  const W=[620,860,1040,2870,1350,1260,810,730,1360];
+  const TOTAL_W=W.reduce((a,b)=>a+b,0);
+  const sumW=(start,n)=>W.slice(start,start+n).reduce((a,b)=>a+b,0);
+  const up=s=>String(s||'').toUpperCase();
+  const tr=(t,o={})=>new TextRun({text:String(t),font:FONT,size:o.raw?o.size:((o.size||17)-(dense?2:0)),bold:!!o.bold,italics:!!o.italics});
+  const P=(t,o={})=>new Paragraph({alignment:o.align||LEFT,spacing:Object.assign({before:o.before||0,after:o.after||0},o.line?{line:o.line,lineRule:LineRuleType.EXACT}:{}),children:[tr(t,o)]});
+  const kn=(label,value,o={})=>new Paragraph({alignment:o.align||LEFT,spacing:{before:o.before||0,after:o.after||0},children:[tr(label,o),tr(value,{...o,bold:!!o.boldValue})]});
+  const NONE={style:BorderStyle.NONE,size:0,color:'FFFFFF'};
+  const C=(start,span,paras,o={})=>new TableCell({
+    width:{size:sumW(start,span),type:WidthType.DXA},
+    columnSpan:span>1?span:undefined,
+    verticalAlign:o.v||VerticalAlign.TOP,
+    shading:o.fill?{type:ShadingType.CLEAR,color:'auto',fill:o.fill}:undefined,
+    borders:(o.noTop||o.noBottom)?{top:o.noTop?NONE:undefined,bottom:o.noBottom?NONE:undefined}:undefined,
+    margins:{top:o.padY==null?PADB:o.padY,bottom:o.padY==null?PADB:o.padY,left:80,right:80},
+    children:Array.isArray(paras)?paras:[paras]
+  });
+  const row=cells=>new TableRow({cantSplit:true,children:cells});
+  const dash=p=>p?fmtINR(p):'-';
+
+  const party=(title,p)=>[
+    P(title,{bold:true}),
+    P(up(p.name),{bold:true,before:30}),
+    P(up(p.address)+(p.phone?(p.address?', ':'')+'PH : '+p.phone:''),{bold:true,before:30}),
+    kn('GSTIN : ',p.gstin,{before:30}),
+    kn('State Code: ',p.stateCode,{before:30}),
+    kn('State: ',up(p.state),{before:30})
+  ];
+
+  const t=d.totals;
+  const rows=[];
+
+  // header
+  rows.push(row([
+    C(0,6,[P('TAX INVOICE',{bold:true,align:CENTER,size:20}),P(COMPANY.name,{bold:true,align:CENTER,size:30,before:40}),P(COMPANY.address,{bold:true,align:CENTER,size:18,before:40,after:40})]),
+    C(6,3,[P('Original for Recipient',{align:CENTER,size:20}),P('INVOICE',{align:CENTER,size:20,before:50}),P('(GST Rules 7 & Sec 31)',{align:CENTER,size:20,before:50})])
+  ]));
+  rows.push(row([
+    C(0,4,[kn('Range : ',d.range,{boldValue:true,size:19}),kn('Division : ',d.division,{boldValue:true,size:19,before:30}),kn('Commission rate : ',d.commission,{boldValue:true,size:19,before:30})]),
+    C(4,2,[kn('PAN No: ',COMPANY.pan,{boldValue:true}),kn('GSTIN: ',COMPANY.gstin,{boldValue:true,before:30})]),
+    C(6,3,[kn('Invoice No: ',d.invNo,{boldValue:true,bold:true}),kn('Date : ',d.date,{boldValue:true,bold:true,before:30}),kn('D.C. No : ','',{before:30})])
+  ]));
+  rows.push(row([C(0,9,P('Invoice for removal of Goods from a factory with payment of GST for Home Consumption',{bold:true,align:CENTER,size:19}))]));
+  rows.push(row([
+    C(0,5,[kn('Date & Time of Invoice : ',d.date+'      Time: ',{boldValue:true}),kn('Date & Time of Removal : ',d.date+'      Time: ',{boldValue:true,before:30})]),
+    C(5,4,[kn('Property ID No: ',d.propertyId),kn('Tax is payable on reverse charge (Yes/No) : ',d.reverse,{before:30})])
+  ]));
+  rows.push(row([
+    C(0,5,party('Consignee / Billed to:',d.billed)),
+    C(5,4,party('Shipped to:',d.shipped))
+  ]));
+  rows.push(row([
+    C(0,5,[kn('PO No: ',d.poNo),kn('Dated: ',d.poDate,{before:30}),kn('Mode of Transport : ',d.mode,{before:30}),kn('Transporter Name: ',d.transporter,{before:30}),kn('GSTIN : ',d.transGstin,{before:30})]),
+    C(5,4,[kn('LR No. : ',d.lrNo),kn('Documents Through : ',d.docsThrough,{before:30}),kn('Transit Insurance No.: ',d.insNo,{before:30}),kn('Payment Terms : ',d.payTerms,{before:30})])
+  ]));
+
+  // items
+  const HF='EDEDED';
+  rows.push(row([
+    C(0,1,P('Sl.No',{bold:true,align:CENTER}),{fill:HF,v:VerticalAlign.CENTER}),
+    C(1,1,P('INDEX',{bold:true,align:CENTER}),{fill:HF,v:VerticalAlign.CENTER}),
+    C(2,1,P('HSN code',{bold:true,align:CENTER}),{fill:HF,v:VerticalAlign.CENTER}),
+    C(3,2,P('Description of Goods',{bold:true,align:CENTER,size:19}),{fill:HF,v:VerticalAlign.CENTER}),
+    C(5,1,P('Qty',{bold:true,align:CENTER}),{fill:HF,v:VerticalAlign.CENTER}),
+    C(6,1,P('UOM',{bold:true,align:CENTER}),{fill:HF,v:VerticalAlign.CENTER}),
+    C(7,1,P('Rate',{bold:true,align:CENTER}),{fill:HF,v:VerticalAlign.CENTER}),
+    C(8,1,P('Net Amount',{bold:true,align:CENTER}),{fill:HF,v:VerticalAlign.CENTER})
+  ]));
+  const rl=Math.round(tier.sz*11.5);
+  const ic=(start,span,txt)=>C(start,span,P(txt,{align:CENTER,size:tier.sz,line:rl,raw:true}),{padY:tier.pad});
+  d.lines.forEach((l,i)=>{
+    rows.push(row([
+      ic(0,1,i+1), ic(1,1,''), ic(2,1,l.hsn||''),
+      ic(3,2,up(l.desc)),
+      ic(5,1,l.qty), ic(6,1,uomFmt(l.wt)),
+      ic(7,1,fmtPlain(l.mrpP)), ic(8,1,fmtPlain(l.net))
+    ]));
+  });
+
+  // totals
+  const lab=(txt,o={})=>C(5,3,P(txt,{bold:true,size:18,...o}),{v:VerticalAlign.CENTER,padY:TPAD});
+  const amt=(txt,o={})=>C(8,1,P(txt,{bold:true,size:18,align:RIGHT,...o}),{v:VerticalAlign.CENTER,padY:TPAD});
+  rows.push(row([C(0,5,P(''),{noBottom:true}),lab('Gross Value'),amt(fmtINR(t.gross))]));
+  rows.push(row([C(0,5,P(''),{noTop:true,noBottom:true}),lab('Less: Discount @ '+t.pct+'%'),amt(fmtINR(t.discount))]));
+  rows.push(row([C(0,5,P(''),{noTop:true}),lab('Assessable Value'),amt(fmtINR(t.assess))]));
+
+  const cg=d.gst==='cgst_sgst', ig=d.gst==='igst';
+  rows.push(row([C(0,5,kn('CGST (in words) : ',cg?amountWords(t.cgst):'-',{bold:true,boldValue:true})),lab('CGST @ 2.5%'),amt(cg?dash(t.cgst):'-')]));
+  rows.push(row([C(0,5,kn('SGST (in words) : ',cg?amountWords(t.sgst):'-',{bold:true,boldValue:true})),lab('SGST @ 2.5%'),amt(cg?dash(t.sgst):'-')]));
+  rows.push(row([C(0,5,P('')),lab('IGST @ 5%'),amt(ig?dash(t.igst):'-')]));
+
+  const via=d.transVia?' (VIA '+up(d.transVia)+')':'';
+  const remarks=t.trans?('TRANSPORT CHARGES :'+via+' : '+amountWords(t.trans)+'.'):'TRANSPORT CHARGES : NIL';
+  rows.push(row([
+    C(0,5,kn('Invoice Value (in words) : ',amountWords(t.total),{bold:true,boldValue:true,size:18}),{fill:'D9D9D9',v:VerticalAlign.CENTER,padY:TPAD}),
+    lab('Transport Charges'),amt(dash(t.trans))
+  ]));
+  rows.push(row([
+    C(0,5,kn('Remarks : ',remarks,{bold:true,boldValue:true,size:17}),{v:VerticalAlign.CENTER,padY:TPAD}),
+    lab('Total Invoice Value',{size:19}),amt(fmtINR(t.total),{size:19})
+  ]));
+
+  // declaration + stamp
+  const sigParas=[P(COMPANY.name,{bold:true,align:CENTER,size:16})];
+  const sm=d.stampData && String(d.stampData).match(/^data:image\/(png|jpe?g);base64,(.+)$/);
+  if(d.stamp && sm){
+    const bin=atob(sm[2]); const bytes=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+    const sw=dense?66:92, sh=Math.max(1,Math.round(sw*((d.stampH||1)/(d.stampW||1))));
+    sigParas.push(new Paragraph({alignment:CENTER,spacing:{before:40,after:0},children:[new ImageRun({type:sm[1]==='png'?'png':'jpg',data:bytes,transformation:{width:sw,height:sh}})]}));
+  } else { sigParas.push(P('',{before:500})); }
+  sigParas.push(P('Authorised Signatory',{align:CENTER,size:16,before:20}));
+  rows.push(row([
+    C(0,6,[P('Declaration:',{size:17}),P(DECLARATION,{size:16,before:30}),P('E.&O.E',{bold:true,align:RIGHT,before:80})]),
+    C(6,3,sigParas)
+  ]));
+
+  const table=new Table({width:{size:TOTAL_W,type:WidthType.DXA},columnWidths:W,layout:TableLayoutType.FIXED,rows});
+  return new Document({
+    creator:'Vedamantra', title:'Invoice '+d.invNo,
+    styles:{default:{document:{run:{font:FONT,size:17}}}},
+    sections:[{
+      properties:{page:{size:{width:11906,height:16838},margin:{top:dense?300:400,right:500,bottom:dense?300:400,left:500}}},
+      children:[table]
+    }]
+  });
+}
+// ==CORE-END==
+
+// ================= Page logic =================
+const $=id=>document.getElementById(id);
+const S={rows:[],orderEdited:false,issuedNo:null,subtotal:null};
+
+function todayISO(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+const dmy=iso=>{const [y,m,d]=iso.split('-');return d+'/'+m+'/'+y;};
+function fyLabel(iso){const [y,m]=iso.split('-').map(Number);const s=m>=4?y:y-1;return String(s).slice(2)+'-'+String(s+1).slice(2);}
+// invoice-number series: where the counter lives and what the number starts with
+function series(style,iso){
+  if(style==='fy') return {key:'vm_invoice_counter_fy_'+fyLabel(iso), prefix:'VED/'+fyLabel(iso)+'/'};
+  return {key:'vm_invoice_counter_'+iso, prefix:'VM-'+dmy(iso)+'-'};
+}
+function getCtr(key){try{return parseInt(localStorage.getItem(key)||'0',10)||0;}catch(e){return 0;}}
+function setCtr(key,n){try{localStorage.setItem(key,String(n));}catch(e){}}
+function nextOrderNo(style,iso){const s=series(style,iso);return s.prefix+String(getCtr(s.key)+1).padStart(3,'0');}
+
+function getHsnMap(){try{return JSON.parse(localStorage.getItem('vm_hsn_map')||'{}');}catch(e){return {};}}
+function saveHsn(name,val){try{const m=getHsnMap();if(val)m[name]=val;else delete m[name];localStorage.setItem('vm_hsn_map',JSON.stringify(m));}catch(e){}}
+
+function newRow(idx,qty,msgAmount,flag){
+  const r={cat:idx,desc:'',hsn:'',qty:qty||1,wt:'',mrp:0,msgAmount:msgAmount==null?null:msgAmount,flag:flag||''};
+  applyCatalog(r);
+  return r;
+}
+function applyCatalog(r){
+  if(r.cat>=0){
+    const p=CATALOG[r.cat];
+    r.desc=invName(p); r.wt=uomFmt(p.wt); r.mrp=p.mrp;
+    r.hsn=p.hsn||getHsnMap()[p.name]||'';
+  }
+}
+
+function fillStates(){
+  const html='<option value="">Select state…</option>'+STATES.map(s=>'<option>'+s+'</option>').join('');
+  $('fState').innerHTML=html; $('sState').innerHTML=html;
+}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');}
+
+function renderRows(){
+  const tb=$('rows');
+  const groups={};
+  CATALOG.forEach((p,i)=>{(groups[p.cat]=groups[p.cat]||[]).push(i);});
+  const optHtml=Object.keys(groups).map(g=>'<optgroup label="'+esc(g)+'">'+groups[g].map(i=>'<option value="'+i+'">'+esc(CATALOG[i].name+(CATALOG[i].wt?' ('+uomFmt(CATALOG[i].wt)+')':''))+'</option>').join('')+'</optgroup>').join('');
+  tb.innerHTML=S.rows.map((r,i)=>
+    '<tr data-i="'+i+'">'+
+    '<td class="sn">'+(i+1)+'</td>'+
+    '<td class="c-desc"><select data-f="cat" aria-label="Product for item '+(i+1)+'"><option value="-1">Other / custom item</option>'+optHtml+'</select>'+
+      '<input data-f="desc" value="'+esc(r.desc)+'" placeholder="Description on the bill" aria-label="Description on the bill for item '+(i+1)+'"></td>'+
+    '<td class="c-hsn"><input data-f="hsn" value="'+esc(r.hsn)+'" aria-label="HSN code for item '+(i+1)+'"></td>'+
+    '<td class="c-qty"><input data-f="qty" type="number" min="0" step="1" inputmode="numeric" value="'+esc(r.qty)+'" aria-label="Quantity for item '+(i+1)+'"></td>'+
+    '<td class="c-wt"><input data-f="wt" value="'+esc(r.wt)+'" aria-label="UOM for item '+(i+1)+'"></td>'+
+    '<td class="c-mrp"><input data-f="mrp" type="number" min="0" step="0.01" inputmode="decimal" value="'+esc(r.mrp)+'" aria-label="Rate for item '+(i+1)+'"></td>'+
+    '<td class="net" data-net="'+i+'">0.00</td>'+
+    '<td><button class="x" type="button" data-del="'+i+'" aria-label="Remove item '+(i+1)+'">×</button></td>'+
+    '</tr><tr class="note" data-note="'+i+'" hidden><td colspan="8"><span class="w"></span></td></tr>'
+  ).join('');
+  tb.querySelectorAll('tr[data-i]').forEach(tr=>{tr.querySelector('select').value=String(S.rows[+tr.dataset.i].cat);});
+  $('emptyMsg').hidden=S.rows.length>0;
+  updateAll();
+}
+
+function readForm(){
+  const v=id=>$(id).value.trim();
+  return {
+    iso:$('fDate').value||todayISO(), style:$('fStyle').value, orderNo:v('fOrderNo'),
+    name:v('fName'), phone:v('fPhone'), address:v('fAddress').replace(/\s*\n+\s*/g,', '),
+    state:$('fState').value, stateCode:v('fStateCode'), gstin:v('fGstin'),
+    sName:v('sName'), sPhone:v('sPhone'), sAddress:v('sAddress').replace(/\s*\n+\s*/g,', '), sState:$('sState').value, sGstin:v('sGstin'),
+    range:v('fRange'), division:v('fDivision'), commission:v('fComm'),
+    disc:$('fDisc').value, gst:$('fGst').value, trans:$('fTrans').value, via:v('fVia'),
+    poNo:v('dPo'), poDate:v('dPoDate'), mode:v('dMode'), docsThrough:v('dDocs'), transporter:v('dTransporter'), transGstin:v('dTransGstin'),
+    lrNo:v('dLr'), insNo:v('dIns'), payTerms:v('dTerms'), reverse:$('dReverse').value, propertyId:v('dProp'),
+    stamp:$('fStamp').checked
+  };
+}
+
+function updateGstHint(){
+  const code=$('fStateCode').value.trim(), st=$('fState').value, h=$('gstHint');
+  if(!code){ h.textContent=''; return; }
+  h.textContent = code===COMPANY.stateCode
+    ? 'Customer is in your own state ('+(st||'code '+code)+'): CGST + SGST usually applies.'
+    : 'Customer is in another state ('+(st||'code '+code)+'): IGST usually applies.';
+}
+
+function updateAll(){
+  const f=readForm();
+  const t=calc(S.rows,f.disc,f.gst,f.trans);
+  t.lines.forEach((l,i)=>{
+    const c=document.querySelector('[data-net="'+i+'"]'); if(c) c.textContent=fmtINR(l.net);
+    const nr=document.querySelector('[data-note="'+i+'"]'); if(!nr) return;
+    const r=S.rows[i]; const msgs=[];
+    if(r.flag) msgs.push(r.flag);
+    if(r.msgAmount!=null){
+      const okAmts=[l.net/100,l.mrpP/100];
+      if(!okAmts.some(a=>Math.abs(a-r.msgAmount)<0.005)) msgs.push('The message says ₹'+r.msgAmount+', but rate × quantity is ₹'+fmtINR(l.net)+'.');
+    }
+    if(!String(r.desc).trim()) msgs.push('Add a description for this item.');
+    if(msgs.length){ nr.hidden=false; nr.querySelector('.w').textContent=msgs.join(' '); } else nr.hidden=true;
+  });
+  const sc=$('subCheck');
+  if(S.subtotal!=null && S.rows.length){
+    if(Math.abs(t.gross/100-S.subtotal)<0.005){ sc.className='ok'; sc.textContent='Gross value matches the subtotal in the message (₹'+fmtINR(Math.round(S.subtotal*100))+').'; }
+    else { sc.className='bad'; sc.textContent='The message subtotal is ₹'+fmtINR(Math.round(S.subtotal*100))+' but the gross value here is ₹'+fmtINR(t.gross)+'. Please check the items.'; }
+  } else { sc.className=''; sc.textContent=''; }
+  if($('dlMsg').className==='bad'){ $('dlMsg').className=''; $('dlMsg').textContent=''; }
+  $('bOrderNo').textContent=f.orderNo||'–';
+  $('bGross').textContent=fmtINR(t.gross);
+  $('bDiscLbl').textContent='Discount ('+t.pct+'%)';
+  $('bDisc').textContent='− '+fmtINR(t.discount);
+  $('bAssess').textContent=fmtINR(t.assess);
+  $('rCgst').hidden=$('rSgst').hidden=f.gst!=='cgst_sgst';
+  $('rIgst').hidden=f.gst!=='igst';
+  $('bCgst').textContent=fmtINR(t.cgst); $('bSgst').textContent=fmtINR(t.sgst); $('bIgst').textContent=fmtINR(t.igst);
+  $('bTrans').textContent=fmtINR(t.trans);
+  $('bTotal').textContent='₹'+fmtINR(t.total);
+  $('bWords').textContent=amountWords(t.total);
+  return {f,t};
+}
+
+function refreshOrderNo(){
+  const iso=$('fDate').value||todayISO(), style=$('fStyle').value;
+  if(!S.orderEdited) $('fOrderNo').value=nextOrderNo(style,iso);
+  $('orderNoHint').textContent = style==='fy'
+    ? 'Financial year '+fyLabel(iso)+'. Type your next number once (for example VED/'+fyLabel(iso)+'/016); after you download, it continues by itself.'
+    : 'Next number for '+dmy(iso)+'. You can edit it.';
+}
+
+function doRead(){
+  const text=$('orderText').value;
+  const msg=$('readMsg');
+  if(!text.trim()){ msg.className='bad'; msg.textContent='Paste the order message first.'; return; }
+  const o=parseOrder(text);
+  S.rows=o.items.map(it=>newRow(it.idx,it.qty,it.msgAmount,it.flag));
+  o.items.forEach((it,i)=>{ if(it.idx<0){ S.rows[i].desc=it.rawName.toUpperCase(); } });
+  S.subtotal=o.subtotal;
+  if(o.name) $('fName').value=o.name;
+  if(o.phone) $('fPhone').value=o.phone;
+  if(o.address) $('fAddress').value=o.address;
+  if(o.state){ $('fState').value=o.state; $('fStateCode').value=STATE_CODES[o.state]||''; }
+  updateGstHint();
+  renderRows();
+  if(o.items.length){
+    const bits=[o.items.length+(o.items.length===1?' item':' items')+' found'];
+    const got=[o.name&&'name',o.phone&&'phone',o.address&&'address'].filter(Boolean);
+    if(got.length) bits.push(got.join(', ')+' filled in');
+    msg.className=''; msg.textContent=bits.join('. ')+'.';
+  } else { msg.className='bad'; msg.textContent='No items found. Check the message, or add items by hand in step 3.'; }
+  if(o.skipped.length){
+    msg.className='bad';
+    msg.textContent+=' Could not read '+o.skipped.length+(o.skipped.length===1?' line: ':' lines: ')+o.skipped.map(l=>'"'+l+'"').join(', ')+'. Add '+(o.skipped.length===1?'it':'them')+' by hand in step 3.';
+  }
+}
+
+function loadScript(url){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=url;s.onload=res;s.onerror=rej;document.head.appendChild(s);});}
+async function ensureDocx(){
+  if(window.docx) return true;
+  try{ await loadScript('https://unpkg.com/docx@9.6.1/dist/index.iife.js'); }catch(e){}
+  return !!window.docx;
+}
+
+async function doDownload(){
+  const msg=$('dlMsg'); msg.className=''; msg.textContent='';
+  const {f}=updateAll();
+  const live=S.rows.filter(r=>(parseInt(r.qty,10)||0)>0);
+  const fail=(text,focusId)=>{msg.className='bad';msg.textContent=text;if(focusId)$(focusId).focus();};
+  if(!live.length) return fail('Add at least one item with a quantity.');
+  if(live.some(r=>!String(r.desc).trim())) return fail('One item has no description. Check step 3.');
+  if(!f.name) return fail('Enter the customer name.','fName');
+  if(!f.orderNo) return fail('Enter an invoice number.','fOrderNo');
+  if(!f.gst) return fail('Choose a GST option (or "No GST").','fGst');
+  if(!(await ensureDocx())) return fail('The Word library could not load. Check the internet connection and try again.');
+  const totals=calc(live,f.disc,f.gst,f.trans);
+  const lines=totals.lines.map(l=>({hsn:l.hsn,desc:l.desc,qty:parseInt(l.qty,10),wt:l.wt,mrpP:l.mrpP,net:l.net}));
+  const billed={name:f.name,address:f.address,phone:f.phone,gstin:f.gstin,state:f.state,stateCode:f.stateCode};
+  const shipped={
+    name:f.sName||f.name, address:f.sAddress||f.address, phone:f.sPhone||f.phone,
+    gstin:f.sGstin||f.gstin, state:f.sState||f.state,
+    stateCode:f.sState?(STATE_CODES[f.sState]||''):f.stateCode
+  };
+  const doc=buildDocx({
+    invNo:f.orderNo, date:dmy(f.iso), billed, shipped,
+    range:f.range, division:f.division, commission:f.commission,
+    poNo:f.poNo, poDate:f.poDate, mode:f.mode, docsThrough:f.docsThrough, transporter:f.transporter, transGstin:f.transGstin,
+    lrNo:f.lrNo, insNo:f.insNo, payTerms:f.payTerms, reverse:f.reverse, propertyId:f.propertyId,
+    transVia:f.via, gst:f.gst, lines, totals, stamp:f.stamp, stampData:STAMP_DATA, stampW:245, stampH:190
+  });
+  const blob=await docx.Packer.toBlob(doc);
+  const safeNo=f.orderNo.replace(/[^A-Za-z0-9]+/g,'-').replace(/^-|-$/g,'');
+  const safeName=f.name.replace(/[^A-Za-z0-9]+/g,'_').replace(/^_|_$/g,'');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob); a.download='Invoice_'+safeNo+'_'+safeName+'.docx';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  // remember this number so the next invoice gets the next one
+  const sr=series(f.style,f.iso);
+  if(f.orderNo.startsWith(sr.prefix)){
+    const n=parseInt(f.orderNo.slice(sr.prefix.length),10);
+    if(n>0 && n>getCtr(sr.key)) setCtr(sr.key,n);
+  }
+  S.issuedNo=f.orderNo;
+  msg.className='ok'; msg.textContent='Downloaded '+f.orderNo+'. Press "Start new order" for the next bill.';
+}
+
+function setDefaults(){
+  $('dPo').value='Verbal'; $('dMode').value='By Road'; $('dDocs').value='Direct'; $('dReverse').value='No';
+  ['dPoDate','dTransporter','dTransGstin','dLr','dIns','dTerms','dProp'].forEach(id=>$(id).value='');
+  $('fVia').value='Courier';
+}
+function startNew(){
+  S.rows=[]; S.subtotal=null; S.orderEdited=false; S.issuedNo=null;
+  ['orderText','fName','fPhone','fAddress','fStateCode','fGstin','sName','sPhone','sAddress','sGstin','fRange','fDivision','fComm'].forEach(id=>$(id).value='');
+  $('fState').value=''; $('sState').value=''; $('fDisc').value='0'; $('fTrans').value='0'; $('fGst').value='';
+  setDefaults(); updateGstHint();
+  $('readMsg').textContent=''; $('dlMsg').textContent=''; $('dlMsg').className='';
+  refreshOrderNo(); renderRows();
+  $('orderText').focus();
+}
+
+// ---------- wiring ----------
+function init(){
+  fillStates();
+  $('fDate').value=todayISO();
+  try{ const st=localStorage.getItem('vm_invoice_style'); if(st==='vm'||st==='fy') $('fStyle').value=st; }catch(e){}
+  setDefaults();
+  refreshOrderNo();
+  $('readBtn').addEventListener('click',doRead);
+  $('orderText').addEventListener('paste',()=>setTimeout(doRead,60));
+  $('dlBtn').addEventListener('click',doDownload);
+  $('newBtn').addEventListener('click',startNew);
+  $('addBtn').addEventListener('click',()=>{S.rows.push(newRow(-1,1,null,'')); renderRows(); const ins=document.querySelectorAll('#rows tr[data-i]'); const last=ins[ins.length-1]; if(last){const d=last.querySelector('[data-f="desc"]'); if(d) d.focus();}});
+  $('fDate').addEventListener('change',()=>{S.orderEdited=false; refreshOrderNo(); updateAll();});
+  $('fStyle').addEventListener('change',()=>{ try{localStorage.setItem('vm_invoice_style',$('fStyle').value);}catch(e){} S.orderEdited=false; refreshOrderNo(); updateAll(); });
+  $('fOrderNo').addEventListener('input',()=>{S.orderEdited=true; updateAll();});
+  $('fState').addEventListener('change',()=>{ $('fStateCode').value=STATE_CODES[$('fState').value]||''; updateGstHint(); });
+  $('fStateCode').addEventListener('input',updateGstHint);
+  ['fDisc','fGst','fTrans','fName','fPhone','fAddress','fState','fStateCode','fGstin','fRange','fDivision','fComm','fVia'].forEach(id=>{
+    $(id).addEventListener('input',updateAll); $(id).addEventListener('change',updateAll);
+  });
+  const tb=$('rows');
+  tb.addEventListener('input',e=>{
+    const tr=e.target.closest('tr[data-i]'); if(!tr) return;
+    const r=S.rows[+tr.dataset.i]; const f=e.target.dataset.f;
+    if(f==='cat') return;
+    r[f]=e.target.value;
+    if(f==='hsn' && r.cat>=0) saveHsn(CATALOG[r.cat].name,e.target.value.trim());
+    if(f==='desc') r.flag='';
+    updateAll();
+  });
+  tb.addEventListener('change',e=>{
+    if(e.target.dataset.f!=='cat') return;
+    const tr=e.target.closest('tr[data-i]'); const r=S.rows[+tr.dataset.i];
+    r.cat=parseInt(e.target.value,10); r.flag='';
+    if(r.cat>=0) applyCatalog(r);
+    renderRows();
+  });
+  tb.addEventListener('click',e=>{
+    const b=e.target.closest('[data-del]'); if(!b) return;
+    S.rows.splice(+b.dataset.del,1); renderRows();
+  });
+  updateAll();
+}
+init();
+</script>
+</body>
+</html>
